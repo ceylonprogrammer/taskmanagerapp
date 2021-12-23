@@ -2,6 +2,7 @@ const express = require('express')
 const Task = require('../models/task')
 const auth = require('../middleware/auth')
 const router = new express.Router()
+const multer=require('multer')
 
 // ADD NEW TASK
 router.post('/tasks', auth, async (req, res) => {
@@ -23,10 +24,16 @@ router.post('/tasks', auth, async (req, res) => {
 // /tasks?completed=true
 // limit skip
 // GET /tasks?limit=10&skip=10
+// GET /tassks?sortBy=createdAt_asc  _desc :desc
 router.get('/tasks',auth, async (req, res) => {
     const match={}
+    const sort={}
 if(req.query.completed){
 match.completed=req.query.completed==='true'
+}
+if(req.query.sortBy){
+    const parts=req.query.sortBy.split(':')
+    sort[parts[0]]=parts[1]==='desc'?-1:1
 }
     try {
         // const tasks = await Task.find({owner:req.user._id})
@@ -36,7 +43,8 @@ match.completed=req.query.completed==='true'
             match,
             options:{
                 limit:parseInt(req.query.limit),
-                skip:parseInt(req.query.skip)
+                skip:parseInt(req.query.skip),
+                sort
             }
         })
         // res.send(tasks)
@@ -110,6 +118,23 @@ router.delete('/tasks/:id',auth, async (req, res) => {
     } catch (e) {
         res.status(500).send(e)
     }
+})
+
+const upload=multer({
+    dest:'avatars',
+    limits:{
+        fileSize:1000000
+    },
+    fileFilter(req,file,cb){
+        if(!file.originalname.match(/\.(jpg|jpeg|png)$/)){
+return cb(new Error('Please upload an image'))
+        }
+        cb(undefined,true)
+    }
+})
+
+router.post('/users/me/avatar',upload.single('avatar'),(req,res)=>{
+    res.send()
 })
 
 module.exports = router
